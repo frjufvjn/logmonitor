@@ -1,0 +1,40 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    #####################################################################################################
+    # 빌드된 바이너리를 AWS S3 Bucket에 업로드하려면 아래의 블록 주석을 해제하고 아래의 secrets변수들을 github에 등록시켜준다.       
+    #####################################################################################################
+    # - name: Upload to S3 bucket
+    #   uses: tpaschalis/s3-cp-action@master
+    #   with:
+    #     args: --acl public-read
+    #   env:
+    #     FILE: ./logmonitor
+    #     AWS_REGION: ${{ secrets.AWS_REGION }}
+    #     AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
