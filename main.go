@@ -254,14 +254,9 @@ func logScan(t time.Time, seekPoint int64, fileInfo FileList) (int64, map[int]st
 
 				if isIncludeKeyword(line, findKeyword) {
 
-					if isFormattedLog(line) {
-						extractKey := getDetectedKey(line)
-						isSend = isAlarmSend(extractKey)
-						taskTimeMap.Set(extractKey, MapOfDetectedTime{time.Now()})
-					} else {
-						logn("non format log:")
-						isSend = true
-					}
+					extractKey := getDetectedKey(line)
+					isSend = isAlarmSend(extractKey)
+					taskTimeMap.Set(extractKey, MapOfDetectedTime{time.Now()})
 
 					if isSend {
 						go alarmSendWrapper(string(line), findKeyword)
@@ -288,12 +283,13 @@ func isIncludeKeyword(line []byte, findKeyword string) bool {
 	return false
 }
 
-func isFormattedLog(line []byte) bool {
-	if bytes.Contains(line, []byte("]")) {
-		return true
-	}
-	return false
-}
+// NOT USE
+// func isFormattedLog(line []byte) bool {
+// 	if bytes.Contains(line, []byte("]")) {
+// 		return true
+// 	}
+// 	return false
+// }
 
 func isAlarmSend(extractKey string) bool {
 	prev, _ := taskTimeMap.Get(extractKey)
