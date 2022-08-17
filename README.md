@@ -1,7 +1,6 @@
 # logmonitor [![Go](https://github.com/frjufvjn/logmonitor/actions/workflows/go.yml/badge.svg)](https://github.com/frjufvjn/logmonitor/actions/workflows/go.yml)
 > 로그파일을 읽어서 특정 키워드 검출시 슬랙이나 잔디 알람 발송
 
-
 ## 설치 방법
 
 OS X:
