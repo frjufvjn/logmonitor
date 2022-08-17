@@ -29,9 +29,9 @@ GOOS=windows go build -o ./bin/logmonitor.exe
 > git master브랜치에서 push나 PR이 발생할 경우 github actions를 통해 serverless로 자동 빌드 되고 빌드된 리눅스용 바이너리 파일이 AWS 클라우드게이트 S3 버킷 (cloud-gate-temp)에 업로드 된다. 
 
 ## 사용 예제
-1. 이 repository의 CI/CD에 의해 컴파일된 프로그램 실행 파일은 CG의 S3버킷에 저장되고 있다. 아래와 같이 해당 서버 인스턴스에서 S3의 파일을 받고 실행권한을 준다.
+1. OS별로 빌드한 파일로 실행가능하며, CI/CD 설정을 해놓았다면 [참고:github actions](./.github/workflows/go.yml#L31) 아래와 같이 해당 서버 인스턴스에서 S3의 파일을 받고 실행권한을 준다.
 ```
-$ aws s3 cp s3://cloud-gate-temp/logmonitor ./logmonitor
+$ aws s3 cp s3://${AWS_S3_BUCKET}/logmonitor ./logmonitor
 $ chmod 755 ./logmonitor 
 ```
 2. logmonitor-config.yml 파일을 목적에 맞게 수정한다. (파일명 바꾸면 안됨.)
@@ -59,3 +59,5 @@ alarm:
 ```
 nohup ./logmonitor 1>/dev/null 2>&1 &
 ```
+4. TO-DO
+    - [ ] 슬랙 api 연동 
