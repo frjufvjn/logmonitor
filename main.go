@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -106,22 +105,16 @@ const programName = "log-monitor"
 
 var (
 	config                   Config
-	prn                      = fmt.Println
-	prf                      = fmt.Printf
 	logn                     = log.Println
 	logf                     = log.Printf
 	taskMap                  cmap.ConcurrentMap[MapLatestReadPoint] // map[string]int64
 	taskTimeMap              cmap.ConcurrentMap[MapOfDetectedTime]  // map[string]time.Time
 	exeCount                 uint64                                 = 0
-	runCycleSec              uint64                                 = 5
 	sameKeywordThreasholdSec uint64                                 = 30
 	sameKeywordExtractLen    int                                    = 20
 	awsInstanceId            string                                 = ""
 	awsRegion                string                                 = ""
 	appName                  string                                 = ""
-	jandiIncommingWebhookUrl string                                 = ""
-	jandiTestUrl                                                    = flag.String("jandi", "", "잔디 테스트 url")
-	slackTestUrl                                                    = flag.String("slack", "", "슬랙테스트 url")
 	isConsoleMode                                                   = flag.Bool("console", false, "콘솔모드 사용여부 true이면 file logger를 사용하지 않음.")
 )
 
@@ -254,7 +247,7 @@ func logScan(t time.Time, seekPoint int64, fileInfo FileList) (int64, map[int]st
 
 				if isIncludeKeyword(line, findKeyword) {
 
-					extractKey := getDetectedKey(line)
+					extractKey := getDetectedSameKeyword(line)
 					isSend = isAlarmSend(extractKey)
 					taskTimeMap.Set(extractKey, MapOfDetectedTime{time.Now()})
 
@@ -293,7 +286,7 @@ func isIncludeKeyword(line []byte, findKeyword string) bool {
 
 func isAlarmSend(extractKey string) bool {
 	prev, _ := taskTimeMap.Get(extractKey)
-	diff := time.Now().Sub(prev.time)
+	diff := time.Since(prev.time)
 
 	if diff.Seconds() > float64(sameKeywordThreasholdSec) {
 		logn(">> 전송: sameKeywordThreashold over~~ Alarm Send!!")
@@ -304,10 +297,8 @@ func isAlarmSend(extractKey string) bool {
 	}
 }
 
-func getDetectedKey(line []byte) string {
-	extractContent := bytes.Split(line, []byte("]"))
-	extractStr := string(extractContent[2])
-
+func getDetectedSameKeyword(line []byte) string {
+	extractStr := string(line)
 	if len(extractStr) > sameKeywordExtractLen {
 		return extractStr[:sameKeywordExtractLen]
 	}
@@ -418,7 +409,7 @@ func setupLogger() {
 	createDirIfNotExist(currPath + "/logs")
 
 	l := &lumberjack.Logger{
-		Filename:   currPath + "/logs/log-monitor.log",
+		Filename:   currPath + "/logs/" + programName + ".log",
 		MaxSize:    1, // megabytes
 		MaxBackups: 5,
 		MaxAge:     28,    //days
