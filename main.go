@@ -167,7 +167,7 @@ func main() {
 		}
 
 		// scheduler
-		gocron.Every(runCycle).Second().Do(task, configInfo)
+		gocron.Every(runCycle).Second().Do(task, &configInfo)
 		<-gocron.Start()
 
 	} else {
@@ -176,7 +176,7 @@ func main() {
 }
 
 // 스케줄러 task 관리
-func task(conf ConfigInfo) {
+func task(conf *ConfigInfo) {
 
 	files := conf.File
 	for x := range files {
@@ -184,7 +184,7 @@ func task(conf ConfigInfo) {
 		g, _ := taskMap.Get(taskID)
 		beforeSeek := g.line // taskMap[taskID]
 
-		afterSeek, _ := logScan(time.Now(), beforeSeek, files[x])
+		afterSeek, _ := logScan(beforeSeek, files[x])
 		s := MapLatestReadPoint{afterSeek}
 		taskMap.Set(taskID, s)
 		// taskMap[taskID] = afterSeek
@@ -192,7 +192,7 @@ func task(conf ConfigInfo) {
 }
 
 // 로그파일을 이전에 읽었던 위치부터 파일의 끝까지 읽고 검출할 패턴이 발견될 경우 현재 사이즈와 함께 반환한다.
-func logScan(t time.Time, seekPoint int64, fileInfo FileList) (int64, map[int]string) {
+func logScan(seekPoint int64, fileInfo FileList) (int64, map[int]string) {
 
 	// 종종 파일 내용에 대해 더 많은 제어를 하고 싶을때가 있습니다. 이를 위해선 파일을 Open하여 os.File 값을 얻습니다.
 	f, err := os.Open(fileInfo.Path)
