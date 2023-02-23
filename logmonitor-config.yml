@@ -5,14 +5,22 @@ sameKeywordThreasholdSec: 30
 sameKeywordExtractLen: 20
 filelist:
   - id: application
-    path: /Users/jungwoopark/workspace/refrence/source/GO/frjufvjn/logmonitor/test.log
+    path: /Users/jungwoopark/workspace/go/src/github.com/frjufvjn/logmonitor/test.log
+    keywords:
+      - pattern: ERROR
+      - pattern: WARN
+  - id: app2
+    path: /Users/jungwoopark/workspace/go/src/github.com/frjufvjn/logmonitor/test2.log
     keywords:
       - pattern: ERROR
       - pattern: WARN
 alarm:
   slack:
     enable: true
-    incommingWebhookUrl: "https://dddd"
+    incommingWebhookUrl: "https://hooks.slack.com/services/foo/bar/tick"
+    username: "유저명"
+    channel: "#채널명"
+    iconemoji: ":monkey_face:"
   jandi:
     enable: false
     incommingWebhookUrl: "https://wh.jandi.com/connect-api/webhook/999999999/xxxxxxxxxxxxxxxxxxxxxx"

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ashwanthkumar/slack-go-webhook"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/jasonlvhit/gocron"
@@ -63,6 +65,9 @@ type Jandi struct {
 type Slack struct {
 	Enable              bool   `yaml:"enable"`
 	IncommingWebhookUrl string `yaml:"incommingWebhookUrl"`
+	Username            string `yaml:"username"`
+	Channel             string `yaml:"channel"`
+	IconEmoji           string `yaml:"iconemoji"`
 }
 
 // FileList is to scan file information
@@ -323,6 +328,19 @@ func slackSend(logData string, keyword string) {
 	}
 
 	logn(">> slack send")
+
+	webhookUrl := config.ConfigInfo().Alarm.Slack.IncommingWebhookUrl
+	msgText := "Detected:" + keyword + " Text:" + logData
+	payload := slack.Payload{
+		Text:      msgText,
+		Username:  config.ConfigInfo().Alarm.Slack.Username,
+		Channel:   config.ConfigInfo().Alarm.Slack.Channel,
+		IconEmoji: config.ConfigInfo().Alarm.Slack.IconEmoji,
+	}
+	err := slack.Send(webhookUrl, "", payload)
+	if len(err) > 0 {
+		fmt.Printf("error: %s\n", err)
+	}
 }
 
 func jandiSned(logData string, keyword string) {

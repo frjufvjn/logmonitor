@@ -21,3 +21,4 @@ logs/
 *.log
 dist/
 bin/
+deploy.sh
