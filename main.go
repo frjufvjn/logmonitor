@@ -364,12 +364,16 @@ func slackSend(logData string, keyword string, taskID string) {
 	logn(">> slack send")
 
 	webhookUrl := config.ConfigInfo().Alarm.Slack.IncommingWebhookUrl
-	msgText := "Task:" + taskID + "Detected:" + keyword + " Text:" + logData
+	att := slack.Attachment{}
+	att.AddField(slack.Field{Title: "Task", Value: taskID})
+	att.AddField(slack.Field{Title: "Detect", Value: keyword})
+
 	payload := slack.Payload{
-		Text:      msgText,
-		Username:  config.ConfigInfo().Alarm.Slack.Username,
-		Channel:   config.ConfigInfo().Alarm.Slack.Channel,
-		IconEmoji: config.ConfigInfo().Alarm.Slack.IconEmoji,
+		Text:        logData,
+		Username:    config.ConfigInfo().Alarm.Slack.Username,
+		Channel:     config.ConfigInfo().Alarm.Slack.Channel,
+		IconEmoji:   config.ConfigInfo().Alarm.Slack.IconEmoji,
+		Attachments: []slack.Attachment{att},
 	}
 	err := slack.Send(webhookUrl, "", payload)
 	if len(err) > 0 {
