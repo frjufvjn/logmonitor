@@ -106,6 +106,11 @@ type MapOfDetectedTime struct {
 	time time.Time
 }
 
+// 처음 프로그램 시작시 알람을 보내지 않도록 설정
+type MapOfIsBoot struct {
+	boot bool
+}
+
 const programName = "log-monitor"
 
 var (
@@ -114,13 +119,14 @@ var (
 	logf                     = log.Printf
 	taskMap                  cmap.ConcurrentMap[MapLatestReadPoint] // map[string]int64
 	taskTimeMap              cmap.ConcurrentMap[MapOfDetectedTime]  // map[string]time.Time
-	exeCount                 uint64                                 = 0
-	sameKeywordThreasholdSec uint64                                 = 30
-	sameKeywordExtractLen    int                                    = 20
-	awsInstanceId            string                                 = ""
-	awsRegion                string                                 = ""
-	appName                  string                                 = ""
-	isConsoleMode                                                   = flag.Bool("console", false, "콘솔모드 사용여부 true이면 file logger를 사용하지 않음.")
+	isBootMap                cmap.ConcurrentMap[MapOfIsBoot]
+	exeCount                 uint64 = 0
+	sameKeywordThreasholdSec uint64 = 30
+	sameKeywordExtractLen    int    = 20
+	awsInstanceId            string = ""
+	awsRegion                string = ""
+	appName                  string = ""
+	isConsoleMode                   = flag.Bool("console", false, "콘솔모드 사용여부 true이면 file logger를 사용하지 않음.")
 )
 
 // 초기화 수행 flag parse
@@ -159,6 +165,7 @@ func main() {
 		// program manipulate map
 		taskMap = cmap.New[MapLatestReadPoint]()    // make(map[string]int64)
 		taskTimeMap = cmap.New[MapOfDetectedTime]() // make(map[string]time.Time)
+		isBootMap = cmap.New[MapOfIsBoot]()         // make(map[string]bool)
 
 		// aws metadata
 		if configInfo.AwsEc2 {
@@ -170,6 +177,21 @@ func main() {
 			awsInstanceId = m.InstanceID
 			awsRegion = m.Region
 		}
+
+		// os signal receive and after process
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			for {
+				s := <-sigs
+				logn("signal received:", s.String())
+				if s.String() == "terminated" {
+					logn("normal exit signal received. then after process~~")
+					alarmSendIfExit("log-monitor-bot가 정상 종료되었습니다. bye bye")
+				}
+				os.Exit(0)
+			}
+		}()
 
 		// scheduler
 		gocron.Every(runCycle).Second().Do(task, &configInfo)
@@ -189,15 +211,16 @@ func task(conf *ConfigInfo) {
 		g, _ := taskMap.Get(taskID)
 		beforeSeek := g.line // taskMap[taskID]
 
-		afterSeek, _ := logScan(beforeSeek, files[x])
+		afterSeek, _ := logScan(beforeSeek, files[x], taskID)
 		s := MapLatestReadPoint{afterSeek}
 		taskMap.Set(taskID, s)
+		isBootMap.Set(taskID, MapOfIsBoot{boot: true})
 		// taskMap[taskID] = afterSeek
 	}
 }
 
 // 로그파일을 이전에 읽었던 위치부터 파일의 끝까지 읽고 검출할 패턴이 발견될 경우 현재 사이즈와 함께 반환한다.
-func logScan(seekPoint int64, fileInfo FileList) (int64, map[int]string) {
+func logScan(seekPoint int64, fileInfo FileList, taskID string) (int64, map[int]string) {
 
 	// 종종 파일 내용에 대해 더 많은 제어를 하고 싶을때가 있습니다. 이를 위해선 파일을 Open하여 os.File 값을 얻습니다.
 	f, err := os.Open(fileInfo.Path)
@@ -253,11 +276,11 @@ func logScan(seekPoint int64, fileInfo FileList) (int64, map[int]string) {
 				if isIncludeKeyword(line, findKeyword) {
 
 					extractKey := getDetectedSameKeyword(line)
-					isSend = isAlarmSend(extractKey)
+					isSend = isAlarmSend(extractKey, taskID)
 					taskTimeMap.Set(extractKey, MapOfDetectedTime{time.Now()})
 
 					if isSend {
-						go alarmSendWrapper(string(line), findKeyword)
+						go alarmSendWrapper(string(line), findKeyword, taskID)
 					}
 
 					result[x] = findKeyword
@@ -289,7 +312,13 @@ func isIncludeKeyword(line []byte, findKeyword string) bool {
 // 	return false
 // }
 
-func isAlarmSend(extractKey string) bool {
+func isAlarmSend(extractKey string, taskID string) bool {
+	b, _ := isBootMap.Get(taskID)
+	if !b.boot {
+		logn("if boot time detect, alarm send skip.")
+		return false
+	}
+
 	prev, _ := taskTimeMap.Get(extractKey)
 	diff := time.Since(prev.time)
 
@@ -317,12 +346,17 @@ func check(e error) {
 	}
 }
 
-func alarmSendWrapper(logData string, keyword string) {
-	go jandiSned(logData, keyword)
-	go slackSend(logData, keyword)
+func alarmSendWrapper(logData string, keyword string, taskID string) {
+	go slackSend(logData, keyword, taskID)
+	go jandiSned(logData, keyword, taskID)
 }
 
-func slackSend(logData string, keyword string) {
+func alarmSendIfExit(msg string) {
+	slackSend(msg, "NONE", "ALL")
+	jandiSned(msg, "NONE", "ALL")
+}
+
+func slackSend(logData string, keyword string, taskID string) {
 	if !config.ConfigInfo().Alarm.Slack.Enable {
 		return
 	}
@@ -330,7 +364,7 @@ func slackSend(logData string, keyword string) {
 	logn(">> slack send")
 
 	webhookUrl := config.ConfigInfo().Alarm.Slack.IncommingWebhookUrl
-	msgText := "Detected:" + keyword + " Text:" + logData
+	msgText := "Task:" + taskID + "Detected:" + keyword + " Text:" + logData
 	payload := slack.Payload{
 		Text:      msgText,
 		Username:  config.ConfigInfo().Alarm.Slack.Username,
@@ -343,7 +377,7 @@ func slackSend(logData string, keyword string) {
 	}
 }
 
-func jandiSned(logData string, keyword string) {
+func jandiSned(logData string, keyword string, taskID string) {
 
 	if !config.ConfigInfo().Alarm.Jandi.Enable {
 		return
