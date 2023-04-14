@@ -30,6 +30,6 @@ jobs:
           goarch: ${{ matrix.goarch }}
           goversion: "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
           binary_name: "logmonitor"
-          extra_files: LICENSE README.md
+          extra_files: LICENSE README.md logmonitor-config.yml
           build_flags: -v
           ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
