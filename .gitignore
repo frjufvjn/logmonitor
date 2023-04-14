@@ -22,3 +22,4 @@ logs/
 dist/
 bin/
 deploy.sh
+.idea

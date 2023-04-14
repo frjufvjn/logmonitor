@@ -60,4 +60,4 @@ alarm:
 nohup ./logmonitor 1>/dev/null 2>&1 &
 ```
 4. TO-DO
-    - [ ] 슬랙 api 연동 
+    - [x] 슬랙 api 연동 

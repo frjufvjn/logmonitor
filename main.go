@@ -114,6 +114,10 @@ type MapOfIsBoot struct {
 const programName = "log-monitor"
 
 var (
+	appVersion               string
+	buildTime                string
+	gitCommit                string
+	gitRef                   string
 	config                   Config
 	logn                     = log.Println
 	logf                     = log.Printf

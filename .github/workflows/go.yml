@@ -25,6 +25,17 @@ jobs:
     - name: Test
       run: go test -v ./...
 
+    - uses: wangyoucao577/go-release-action@v1.32
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        goversion: "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
+        binary_name: "logmonitor"
+        extra_files: LICENSE README.md
+        build_flags: -v
+        ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
+
     #####################################################################################################
     # 빌드된 바이너리를 AWS S3 Bucket에 업로드하려면 아래의 블록 주석을 해제하고 아래의 secrets변수들을 github에 등록시켜준다.       
     #####################################################################################################
