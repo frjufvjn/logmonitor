@@ -48,10 +48,13 @@ filelist: # 대상 로그파일들 정보
       - pattern: ERROR
       - pattern: WARN
 alarm:
-  slack: # 슬랙 알람 설정
-    enable: true # 슬랙 알람 사용여부 
-    incommingWebhookUrl: "https://dddd"
-  jandi: # 잔디 알람 설정
+   slack:
+      enable: true
+      incommingWebhookUrl: "https://hooks.slack.com/services/foo/bar/tick"
+      username: "유저명"
+      channel: "#채널명"
+      iconemoji: ":monkey_face:"
+  jandi:
     enable: false # 잔디 알람 사용여부 
     incommingWebhookUrl: "https://wh.jandi.com/connect-api/webhook/999999999/xxxxxxxxxxxxxxxxxxxxxx"
 ```

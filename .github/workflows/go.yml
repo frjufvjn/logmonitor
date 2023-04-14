@@ -1,51 +1,35 @@
-name: Go
-
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
+  release:
+    types: [created]
 
 jobs:
-
-  build:
+  releases-matrix:
+    name: Release Go Binary
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goarch: arm64
+            goos: windows
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
+      # add version tag
+      - name: Set APP_VERSION env
+        run: echo APP_VERSION=$(echo ${GITHUB_REF} | rev | cut -d'/' -f 1 | rev ) >> ${GITHUB_ENV}
+      - name: Set BUILD_TIME env
+        run: echo BUILD_TIME=$(date) >> ${GITHUB_ENV}
 
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
-
-    - uses: wangyoucao577/go-release-action@v1.32
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
-        binary_name: "logmonitor"
-        extra_files: LICENSE README.md
-        build_flags: -v
-        ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
-
-    #####################################################################################################
-    # 빌드된 바이너리를 AWS S3 Bucket에 업로드하려면 아래의 블록 주석을 해제하고 아래의 secrets변수들을 github에 등록시켜준다.       
-    #####################################################################################################
-    # - name: Upload to S3 bucket
-    #   uses: tpaschalis/s3-cp-action@master
-    #   with:
-    #     args: --acl public-read
-    #   env:
-    #     FILE: ./logmonitor
-    #     AWS_REGION: ${{ secrets.AWS_REGION }}
-    #     AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - uses: wangyoucao577/go-release-action@v1.32
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: "https://dl.google.com/go/go1.19.linux-amd64.tar.gz"
+          binary_name: "logmonitor"
+          extra_files: LICENSE README.md
+          build_flags: -v
+          ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
