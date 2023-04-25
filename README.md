@@ -62,5 +62,9 @@ alarm:
 ```
 nohup ./logmonitor 1>/dev/null 2>&1 &
 ```
-4. TO-DO
+4. release된 최신 버전을 다운로드하는 방법
+```shell
+curl -s https://api.github.com/repos/frjufvjn/logmonitor/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs wget
+```
+5. TO-DO
     - [x] 슬랙 api 연동 
